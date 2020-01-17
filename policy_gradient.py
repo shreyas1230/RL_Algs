@@ -29,7 +29,8 @@ class PG(torch.nn.Module):
 
     def train(self, num_epochs, device, env, causality = False, baselines = False):
         for epoch in range(num_epochs):
-            obs, acs, rews, dones, log_probs, baseline = collect_trajectories(env, 20, self, 1000)
+            rend = epoch%100 == 0
+            obs, acs, rews, dones, log_probs, baseline = collect_trajectories(env, 20, self, 1000, rend)
             if causality:
                 r = rew_to_go(np.array(rews), np.array(dones))
             else:
@@ -40,7 +41,6 @@ class PG(torch.nn.Module):
             np.random.shuffle(ind)
             for i in ind:
                 loss -= adv[i]*log_probs[i]
-
             print('EPOCH {0}'.format(epoch+1))
             self.optimizer.zero_grad()
             loss.backward()
@@ -49,8 +49,9 @@ class PG(torch.nn.Module):
             print()
 
     def sample_action(self, observation):
-        action_probs = self(torch.from_numpy(np.array(observation)).float())
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        action_probs = self(torch.from_numpy(np.array(observation)).float().to(device))
         d = self.dist(action_probs)
         action = d.sample()
         lp = d.log_prob(action)
-        return action.numpy(), lp
+        return action.cpu().numpy(), lp

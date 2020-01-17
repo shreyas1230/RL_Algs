@@ -21,15 +21,16 @@ def make_dataloader(x, y, batch_size = 100):
     loader = DataLoader(dataset = data, batch_size = batch_size, shuffle = True)
     return loader
 
-def collect_trajectories(env, epochs, policy, time_per_epoch):
+def collect_trajectories(env, epochs, policy, time_per_epoch, rend):
     obs, acs, rews, dones, log_probs = [], [], [], [], []
     timesteps = time_per_epoch
     trajrew = []
-    for epochs in range(epochs):
+    for epoch in range(epochs):
         observation = env.reset()
         totrew = 0
         for t in range(timesteps):
-            env.render()
+            if rend:
+                env.render()
             action, lp = policy.sample_action(observation)
             observation, reward, done, info = env.step(action)
             obs.append(observation)
@@ -42,7 +43,8 @@ def collect_trajectories(env, epochs, policy, time_per_epoch):
                 # print("Episode finished after {} timesteps".format(t+1))
                 break
         trajrew.append(totrew)
-    env.close()
+    if rend:
+        env.close()
     print("Mean Reward Per Episode: {0}".format(sum(trajrew)/len(trajrew)))
     return obs, acs, rews, dones, log_probs, sum(trajrew)/len(trajrew)
 

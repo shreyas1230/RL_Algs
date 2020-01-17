@@ -21,5 +21,21 @@ else:
 # print(input_dim, output_dim)
 net = PG(input_dim, [10], 2, 0.001).to(device) #Cartpole trainer
 net.train(1000, device, env)
-collect_trajectories(env, 10, net, 1000)
+collect_trajectories(env, 10, net, 1000, causality=True, baselines=False)
 # run_policy(env, 10, net, 1000)
+
+def make_env(env_id, rank, seed=0):
+    """
+    Utility function for multiprocessed env.
+
+    :param env_id: (str) the environment ID
+    :param num_env: (int) the number of environment you wish to have in subprocesses
+    :param seed: (int) the inital seed for RNG
+    :param rank: (int) index of the subprocess
+    """
+    def _init():
+        env = gym.make(env_id)
+        env.seed(seed + rank)
+        return env
+    set_global_seeds(seed)
+    return _init
