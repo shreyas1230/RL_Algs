@@ -2,6 +2,7 @@ import torch
 from torch.distributions import Categorical
 import numpy as np
 from utils import run_policy, collect_trajectories, make_dataloader, rew_to_go, cum_rew
+from replay_buffer import *
 
 class PG(torch.nn.Module):
     def __init__(self, D_in, H, D_out, lr=0.01, dist=Categorical):
@@ -17,6 +18,9 @@ class PG(torch.nn.Module):
         self.softmax = torch.nn.Softmax()
         self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
         self.dist = dist
+        self.mem = ReplayMemory(100000)
+        self.input_dim = D_in
+        self.output_dim = D_out
 
     def forward(self, x):
         for i in range(len(self.layers)):
@@ -27,21 +31,27 @@ class PG(torch.nn.Module):
                 x = self.softmax(x)
         return x
 
-    def train(self, num_epochs, device, env, causality = False, baselines = False):
+    def train(self, env, num_epochs, batch_size, device, causality = False, baselines = False):
         for epoch in range(num_epochs):
-            obs, acs, rews, dones, log_probs, baseline = collect_trajectories(env, 20, self, 1000)
-            if causality:
-                r = rew_to_go(np.array(rews), np.array(dones))
-            else:
-                r = cum_rew(np.array(rews), np.array(dones))
-            adv = r - baseline if baselines else r
-            loss = 0
-            ind = np.arange(len(log_probs))
-            np.random.shuffle(ind)
-            for i in ind:
-                loss -= adv[i]*log_probs[i]
-
             print('EPOCH {0}'.format(epoch+1))
+            # obs, acs, rews, dones, log_probs, baseline = collect_trajectories(env, 20, self, 1000, self.mem)
+            collect_trajectories(env, 1, self, 1000, self.mem, device)
+            transitions = self.mem.sample_recent(batch_size)
+            batch = Transition(*zip(*transitions))
+            state_batch = torch.cat(batch.state).reshape((-1, self.input_dim))
+            action_batch = torch.cat(batch.action)
+            reward_batch = torch.cat(batch.reward)
+            next_state_batch = torch.cat(batch.next_state).reshape((-1, self.input_dim))
+            done_batch = torch.cat(batch.done)
+            baseline = torch.sum(reward_batch)/torch.sum(done_batch)
+            if causality:
+                r = rew_to_go(reward_batch, done_batch)
+            else:
+                r = cum_rew(reward_batch, done_batch)
+            adv = r - baseline if baselines else r
+            action_probs = self(state_batch)
+            log_probs = self.dist(action_probs).log_prob(action_batch)
+            loss = torch.mean(-log_probs*r)
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -49,8 +59,7 @@ class PG(torch.nn.Module):
             print()
 
     def sample_action(self, observation):
-        action_probs = self(torch.from_numpy(np.array(observation)).float())
+        action_probs = self(observation)
         d = self.dist(action_probs)
-        action = d.sample()
-        lp = d.log_prob(action)
-        return action.numpy(), lp
+        action = d.sample().view(1,1)[0]
+        return action
