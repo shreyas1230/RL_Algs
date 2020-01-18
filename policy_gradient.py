@@ -35,7 +35,7 @@ class PG(torch.nn.Module):
         for epoch in range(num_epochs):
             print('EPOCH {0}'.format(epoch+1))
             rend = epoch % 100 == 0
-            collect_trajectories(env, 20, self, 1000, self.mem, device, rend)
+            collect_trajectories(env, 100, self, 500, self.mem, device, rend)
             transitions = self.mem.sample_recent(batch_size)
             batch = Transition(*zip(*transitions))
             state_batch = torch.cat(batch.state).reshape((-1, self.input_dim))
