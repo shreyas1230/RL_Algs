@@ -24,7 +24,6 @@ def make_dataloader(x, y, batch_size = 100):
     return loader
 
 def collect_trajectories(env, epochs, policy, time_per_epoch, memory, device, rend):
-    # obs, acs, rews, dones, log_probs = [], [], [], [], []
     timesteps = time_per_epoch
     trajrew = []
     for epoch in range(epochs):
@@ -33,7 +32,6 @@ def collect_trajectories(env, epochs, policy, time_per_epoch, memory, device, re
         for t in range(timesteps):
             if rend:
                 env.render()
-            # action, lp = policy.sample_action(observation)
             observation = torch.from_numpy(observation).float().to(device)
             action = policy.sample_action(observation)
             new_obs, reward, done, info = env.step(action.item())
@@ -42,11 +40,6 @@ def collect_trajectories(env, epochs, policy, time_per_epoch, memory, device, re
             done = torch.tensor([1 if done or t==timesteps-1 else 0], device=device)
             memory.push(observation, action, new_observation, reward, done)
             observation = new_obs
-            # obs.append(observation)
-            # acs.append(action)
-            # rews.append(reward)
-            # dones.append(1 if done or t==timesteps-1 else 0)
-            # log_probs.append(lp)
             totrew+=reward
             if done.item():
                 # print("Episode finished after {} timesteps".format(t+1))
@@ -55,7 +48,6 @@ def collect_trajectories(env, epochs, policy, time_per_epoch, memory, device, re
     if rend:
         env.close()
     print("Mean Reward Per Episode: {0}".format((sum(trajrew)/len(trajrew)).item()))
-    # return obs, acs, rews, dones, log_probs, sum(trajrew)/len(trajrew)
 
 def run_policy(env, epochs, policy, time_per_epoch):
     rews = []
@@ -117,15 +109,6 @@ def rew_to_go(rews, dones):
         trajrew.append(torch.flip(torch.cumsum(rews[start:end], dim=0), dims=[0]))
         start = end
     return torch.cat(trajrew)
-    # print(rews)
-    # print(dones)
-    # rtg = []
-    # for i in range(rews.shape[0]-1, -1, -1):
-    #     if dones[i] == 1:
-    #         running_sum = 0
-    #     running_sum += rews[i]
-    #     rtg = [running_sum] + rtg
-    # return np.array(rtg)
 
 def cum_rew(rews, dones):
     start, end = 0, 0
@@ -135,14 +118,3 @@ def cum_rew(rews, dones):
         trajrew.append(torch.sum(rews[start:end]).repeat_interleave(end-start))
         start = end
     return torch.cat(trajrew)
-    # trajrew = []
-    # start, end, totrew = 0, 0, 0
-    # while end < rews.shape[0]:
-    #     totrew += rews[end]
-    #     if dones[end] == 1:
-    #         for i in range(start, end+1):
-    #             trajrew.append(totrew)
-    #         start = end
-    #         totrew = 0
-    #     end += 1
-    # return np.array(trajrew)
