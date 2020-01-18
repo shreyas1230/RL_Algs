@@ -34,8 +34,9 @@ class PG(torch.nn.Module):
     def train(self, env, num_epochs, batch_size, device, causality = False, baselines = False):
         for epoch in range(num_epochs):
             print('EPOCH {0}'.format(epoch+1))
+            rend = epoch % 100 == 0
             # obs, acs, rews, dones, log_probs, baseline = collect_trajectories(env, 20, self, 1000, self.mem)
-            collect_trajectories(env, 1, self, 1000, self.mem, device)
+            collect_trajectories(env, 1, self, 1000, self.mem, device, rend)
             transitions = self.mem.sample_recent(batch_size)
             batch = Transition(*zip(*transitions))
             state_batch = torch.cat(batch.state).reshape((-1, self.input_dim))
@@ -44,14 +45,17 @@ class PG(torch.nn.Module):
             next_state_batch = torch.cat(batch.next_state).reshape((-1, self.input_dim))
             done_batch = torch.cat(batch.done)
             baseline = torch.sum(reward_batch)/torch.sum(done_batch)
+
             if causality:
                 r = rew_to_go(reward_batch, done_batch)
             else:
                 r = cum_rew(reward_batch, done_batch)
             adv = r - baseline if baselines else r
+
             action_probs = self(state_batch)
             log_probs = self.dist(action_probs).log_prob(action_batch)
             loss = torch.mean(-log_probs*r)
+
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()

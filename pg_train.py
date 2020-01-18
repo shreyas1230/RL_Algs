@@ -3,9 +3,7 @@ from utils import *
 import numpy as np
 import torch
 import gym
-import warnings
 
-warnings.filterwarnings("ignore")
 torch.manual_seed(1)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
@@ -27,5 +25,19 @@ num_epochs = 1000
 # print(input_dim, output_dim)
 net = PG(input_dim, [10], output_dim, 0.001).to(device) #Cartpole trainer
 net.train(env, num_epochs, batch_size, device)
-collect_trajectories(env, 10, net, 1000)
-# run_policy(env, 10, net, 1000)
+collect_trajectories(env, 10, net, 1000, causality=False, baselines=False)
+# def make_env(env_id, rank, seed=0):
+#     """
+#     Utility function for multiprocessed env.
+#
+#     :param env_id: (str) the environment ID
+#     :param num_env: (int) the number of environment you wish to have in subprocesses
+#     :param seed: (int) the inital seed for RNG
+#     :param rank: (int) index of the subprocess
+#     """
+#     def _init():
+#         env = gym.make(env_id)
+#         env.seed(seed + rank)
+#         return env
+#     set_global_seeds(seed)
+#     return _init
