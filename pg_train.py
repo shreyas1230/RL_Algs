@@ -6,6 +6,7 @@ import gym
 
 torch.manual_seed(1)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = "cpu"
 print(device)
 env_name = 'CartPole-v1'
 env = gym.make(env_name)
