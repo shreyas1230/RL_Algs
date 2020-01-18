@@ -25,7 +25,7 @@ batch_size = 1000
 num_epochs = 2000
 # print(input_dim, output_dim)
 net = PG(input_dim, [10], output_dim, 0.001).to(device) #Cartpole trainer
-net.train(env, num_epochs, batch_size, device, causality=True, baselines=False)
+net.train(env, num_epochs, batch_size, device, causality=True, baselines=True)
 
 # def make_env(env_id, rank, seed=0):
 #     """
