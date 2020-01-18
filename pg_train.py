@@ -24,8 +24,8 @@ batch_size = 100
 num_epochs = 1000
 # print(input_dim, output_dim)
 net = PG(input_dim, [10], output_dim, 0.001).to(device) #Cartpole trainer
-net.train(env, num_epochs, batch_size, device)
-collect_trajectories(env, 10, net, 1000, causality=False, baselines=False)
+net.train(env, num_epochs, batch_size, device, causality=True, baselines=True)
+# collect_trajectories(env, 10, net, 1000, causality=False, baselines=False)
 # def make_env(env_id, rank, seed=0):
 #     """
 #     Utility function for multiprocessed env.

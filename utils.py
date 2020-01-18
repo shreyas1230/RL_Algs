@@ -54,7 +54,7 @@ def collect_trajectories(env, epochs, policy, time_per_epoch, memory, device, re
         trajrew.append(totrew)
     if rend:
         env.close()
-    print("Mean Reward Per Episode: {0}".format(sum(trajrew)/len(trajrew)))
+    print("Mean Reward Per Episode: {0}".format((sum(trajrew)/len(trajrew)).item()))
     # return obs, acs, rews, dones, log_probs, sum(trajrew)/len(trajrew)
 
 def run_policy(env, epochs, policy, time_per_epoch):
